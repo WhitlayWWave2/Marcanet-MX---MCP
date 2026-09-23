@@ -1,0 +1,5 @@
+El Instituto Mexicano de la Propiedad Industrial (IMPI) gestiona el registro de marcas en México a través de su plataforma Acervo de Marcas (anteriormente Marcanet). Esta plataforma es una base de datos cerrada y sin una API pública oficial, lo que impide que los modelos de lenguaje (LLMs) consulten el estatus de una marca de manera nativa.
+
+El Model Context Protocol (MCP) resuelve este problema al proporcionar un estándar de comunicación universal entre los LLMs y fuentes de datos externas. Desarrollar un servidor MCP específico para Marcanet permite encapsular la complejidad de la extracción de datos (web scraping o ingeniería inversa de peticiones HTTP) en un microservicio aislado.
+
+Al integrar este servidor MCP dentro de una arquitectura de agentes utilizando LangGraph.js, se dota a un sistema de inteligencia artificial de la capacidad de razonar, planificar y ejecutar búsquedas de disponibilidad marcaria en tiempo real, procesando los resultados y entregando reportes estructurados al usuario final.
