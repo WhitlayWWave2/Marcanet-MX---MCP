@@ -1,0 +1,167 @@
+{
+  "name": "IMPI MCP - Vigilancia Diaria de Marcas",
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "0 6 * * *" }] } },
+      "id": "cron-1",
+      "name": "Cada día 06:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://TU-SITIO/lista-monitoreo.csv",
+        "options": { "response": { "response": { "outputPropertyName": "csv", "format": "csv" } } }
+      },
+      "id": "read-1",
+      "name": "Leer lista monitoreo (CSV)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [200, 0]
+    },
+    {
+      "parameters": {
+        "batchSize": 500,
+        "options": {}
+      },
+      "id": "split-1",
+      "name": "SplitInBatches (500)",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [400, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// acumula las marcas del batch actual\nconst items = $input.all().map(i => i.json.marca || i.json.nombre).filter(Boolean);\nreturn [{ json: { marcas: items, clases: [30, 35] } }];"
+      },
+      "id": "code-1",
+      "name": "Armar payload lote",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [600, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://TU-HOST:3000/api/batch",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-api-key", "value": "={{ $env.IMPI_MCP_API_KEY }}" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "http-1",
+      "name": "Encolar batch en MCP",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [800, 0]
+    },
+    {
+      "parameters": { "amount": 30, "unit": "seconds" },
+      "id": "wait-1",
+      "name": "Esperar 30s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1000, 0],
+      "webhookId": "wait-imp"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://TU-HOST:3000/api/job/{{ $('Encolar batch en MCP').first().json.job_id }}",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{ "name": "x-api-key", "value": "={{ $env.IMPI_MCP_API_KEY }}" }] },
+        "options": {}
+      },
+      "id": "http-2",
+      "name": "Estado del lote",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1200, 0]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": false, "version": 2 },
+                "conditions": [
+                  { "leftValue": "={{ $json.estado }}", "rightValue": "done", "operator": { "type": "string", "operation": "equals" } }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "Listo"
+            }
+          ]
+        },
+        "options": { "fallbackOutput": "extra" }
+      },
+      "id": "if-1",
+      "name": "¿Terminó?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1400, 0]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://TU-HOST:3000/api/report/{{ $('Encolar batch en MCP').first().json.job_id }}.csv",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{ "name": "x-api-key", "value": "={{ $env.IMPI_MCP_API_KEY }}" }] },
+        "options": { "response": { "response": { "fullResponse": true } } }
+      },
+      "id": "http-3",
+      "name": "Descargar reporte CSV",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1600, -100]
+    },
+    {
+      "parameters": {
+        "toEmail": "tu@correo.mx",
+        "subject": "=Reporte diario vigilancia IMPI {{ $now.format('yyyy-MM-dd') }}",
+        "text": "Adjunto el reporte de vigilancia de marcas generado por impi-mcp.",
+        "options": { "attachments": "data" }
+      },
+      "id": "mail-1",
+      "name": "Enviar reporte",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1800, -100],
+      "credentials": { "smtp": { "id": "REEMPLAZA", "name": "SMTP" } }
+    }
+  ],
+  "connections": {
+    "Cada día 06:00": { "main": [[{ "node": "Leer lista monitoreo (CSV)", "type": "main", "index": 0 }]] },
+    "Leer lista monitoreo (CSV)": { "main": [[{ "node": "SplitInBatches (500)", "type": "main", "index": 0 }]] },
+    "SplitInBatches (500)": {
+      "main": [
+        [{ "node": "Armar payload lote", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Armar payload lote": { "main": [[{ "node": "Encolar batch en MCP", "type": "main", "index": 0 }]] },
+    "Encolar batch en MCP": { "main": [[{ "node": "Esperar 30s", "type": "main", "index": 0 }]] },
+    "Esperar 30s": { "main": [[{ "node": "Estado del lote", "type": "main", "index": 0 }]] },
+    "Estado del lote": {
+      "main": [
+        [{ "node": "Descargar reporte CSV", "type": "main", "index": 0 }],
+        [{ "node": "Esperar 30s", "type": "main", "index": 0 }]
+      ]
+    },
+    "Descargar reporte CSV": { "main": [[{ "node": "Enviar reporte", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "meta": {
+    "description": "Vigilancia diaria: lee CSV de marcas monitoreadas, encola lotes de 500 en /api/batch, hace polling hasta done y envía el reporte CSV por email. Reemplaza TU-HOST y credenciales antes de importar."
+  }
+}
