@@ -4,7 +4,9 @@
   "description": "Servidor MCP + API HTTP + worker autónomo para consultar el Acervo de Marcas del IMPI (México). Funciona SIN LLM: n8n, cron o cualquier cliente REST pueden usarlo.",
   "type": "module",
   "main": "build/server.js",
-  "bin": { "impi-mcp": "build/server.js" },
+  "bin": {
+    "impi-mcp": "build/server.js"
+  },
   "scripts": {
     "build": "tsc",
     "dev:server": "tsx src/server.ts",
@@ -13,7 +15,8 @@
     "start:server": "node build/server.js",
     "start:api": "node build/http-api.js",
     "start:worker": "node build/worker.js",
-    "smoke": "tsx scripts/smoke.ts"
+    "smoke": "tsx scripts/smoke.ts",
+    "calibrate": "tsx scripts/calibrate.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
@@ -29,5 +32,30 @@
     "tsx": "^4.19.0",
     "typescript": "^5.7.0"
   },
-  "engines": { "node": ">=20" }
+  "engines": {
+    "node": ">=20"
+  },
+  "files": [
+    "build",
+    "scrape-profile.json",
+    "n8n",
+    "README.md"
+  ],
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "impi",
+    "marcas",
+    "méxico",
+    "trademarks",
+    "scraper",
+    "n8n",
+    "api"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/WhitlayWWave2/Marcanet-MX---MCP.git"
+  },
+  "homepage": "https://github.com/WhitlayWWave2/Marcanet-MX---MCP#readme"
 }

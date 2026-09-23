@@ -78,3 +78,40 @@ con datos sintéticos deterministas (`src/scrape/mock.ts`).
 
 ⚖️ Antes de activar modo real, revisa los términos de uso del IMPI y considera la
 Gaceta de la Propiedad Industrial como fuente bulk alternativa (ver Escalar100k.md).
+
+## 🎯 Puesta a punto contra el sitio real (calibración)
+
+No hace falta editar código: los selectores viven en `scrape-profile.json`.
+
+```bash
+# 1. Encuentra la URL real del buscador de Acervo de Marcas (cópiala del navegador
+#    tras hacer una búsqueda, p.ej. https://.../marca/consulta?denomination=SABINAS)
+# 2. Corre el asistente (headless, heurístico):
+npm run calibrate -- "https://URL-REAL-DEL-BUSCADOR?q=SABINAS"
+#    → guarda calibration/page.png + page.html + api-calls.json y postula selectores
+# 3. Modo interactivo con navegador visible para confirmar/ajustar cada selector:
+npm run calibrate -- "https://URL-REAL" --review
+# 4. Activa el modo real:
+SCRAPE_MODE=auto npm run dev:api   # o SCRAPE_MODE=real si editaste impi.ts a mano
+```
+
+💡 **Atajo**: si `calibration/api-calls.json` muestra que el portal llama a una API
+interna que devuelve JSON, se puede copiar esa llamada al scraper y evitar el DOM
+por completo (más rápido y robusto). Mueve el perfil calibrado a tu repo:
+`scrape-profile.json` es portable y versionable.
+
+## 📦 Publicar para que cualquier IA lo use
+
+```bash
+npm login
+npm publish          # publica el paquete bin "impi-mcp"
+```
+
+Cualquier cliente MCP (Claude Desktop, Cursor, Windsurf, n8n MCP Client, LangGraph)
+lo usa con:
+```json
+{ "mcpServers": { "impi": { "command": "npx", "args": ["-y", "impi-mcp"] } } }
+```
+Y quien no tenga LLM simplemente levanta `impi-mcp serve-http` (API REST documentada arriba).
+Sugerencia: registra también el endpoint HTTP en un repositorio de servidores MCP
+(p.ej. mcpservers.org / Smithery) para descubribilidad.
